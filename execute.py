@@ -44,42 +44,42 @@ N_FEATURES = 200
 
 if __name__ == "__main__":
 
-	use_model = sys.argv[1]
-	if use_model is None:
-		print('Specify model to be used. LSATextClassifier, RNNTextClassifier or CNNTextClassifier')
-		sys.exit()
+    use_model = sys.argv[1]
+    if use_model is None:
+        print('Specify model to be used. LSATextClassifier, RNNTextClassifier or CNNTextClassifier')
+        sys.exit()
 
-	# load data
-	X_train, X_test, y_train, y_test = dp.load_imdb_data()
+    # load data
+    X_train, X_test, y_train, y_test = dp.load_imdb_data()
 
-	# build and train model
-	if use_model == 'LSATextClassifier':
-		model = LSATextClassifier()
-		model.build()
-		model.train(X_train, y_train)
+    # build and train model
+    if use_model == 'LSATextClassifier':
+        model = LSATextClassifier()
+        model.build()
+        model.train(X_train, y_train)
 
-	elif use_model == "TextRNN":
-		embd_matrix = dp.make_embedding_matrix(X_train + X_test, size=EMBEDDING_SIZE)
-		# embd_matrix = dp.load_embedding_matrix(FILENAME)
-		model = RNNTextClassifier()
-		model.build()
-		model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
+    elif use_model == "TextRNN":
+        embd_matrix = dp.make_embedding_matrix(X_train + X_test, size=EMBEDDING_SIZE)
+        # embd_matrix = dp.load_embedding_matrix(FILENAME)
+        model = RNNTextClassifier()
+        model.build()
+        model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
 
-	elif use_model == 'TextCNN':
-		embd_matrix = dp.make_embedding_matrix(X_train + X_test, size=EMBEDDING_SIZE)
-		# embd_matrix = dp.load_embedding_matrix(FILENAME)
-		model = CNNTextClassifier()
-		model.build()
-		model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
+    elif use_model == 'TextCNN':
+        embd_matrix = dp.make_embedding_matrix(X_train + X_test, size=EMBEDDING_SIZE)
+        # embd_matrix = dp.load_embedding_matrix(FILENAME)
+        model = CNNTextClassifier()
+        model.build()
+        model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
 
-	# evaluate model
-	accuracy = model.evaluate(X_test, y_test)
-	print('Test accuracy: ', accuracy)
+    # evaluate model
+    accuracy = model.evaluate(X_test, y_test)
+    print('Test accuracy: ', accuracy)
 
-	# predict
-	neg_review = 'This movie was the worst thing I have ever watched.'
-	pos_review = 'This was the greatest thing. I really liked it.'
-	neg_pred = model.predict(neg_review)
-	pos_pred = model.predict(pos_review)
-	print('Prediction on negative review: ' neg_pred)
-	print('Prediction on positive review: ' pos_pred)
+    # predict
+    neg_review = 'This movie was the worst thing I have ever watched.'
+    pos_review = 'This was the greatest thing. I really liked it.'
+    neg_pred = model.predict(neg_review)
+    pos_pred = model.predict(pos_review)
+    print('Prediction on negative review: ' neg_pred)
+    print('Prediction on positive review: ' pos_pred)

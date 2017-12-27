@@ -30,7 +30,7 @@ from __future__ import print_function
 from __future__ import generators
 from __future__ import division
 
-# import tensorflow as tf 	# (optional) feel free to build your models using keras
+# import tensorflow as tf   # (optional) feel free to build your models using keras
 
 import data_preprocessing as dp
 
@@ -45,44 +45,44 @@ import data_preprocessing as dp
 # from keras.layers import Dense, Embedding, LSTM
 
 class ClassifierTemplate(object):
-	"""Fill out this template to create three classes:
-	LSATextClassifier(object)
-	CNNTextClassifier(object)
-	LSTMTextClassifier(object)
+    """Fill out this template to create three classes:
+    LSATextClassifier(object)
+    CNNTextClassifier(object)
+    LSTMTextClassifier(object)
 
-	Modify the code as much as you need.
-	Add arguments to the functions and add as many other functions/classes as you wish.
-	"""
+    Modify the code as much as you need.
+    Add arguments to the functions and add as many other functions/classes as you wish.
+    """
 
-	def __init__(self, embedding_matrix=None, additional_parameters=None):
-		"""Initialize the classifier with an (optional) embedding_matrix
-		and/or any other parameters."""
-		self.embedding_matrix = embedding_matrix
-
-
-	def build(self, model_parameters=None):
-		"""Build the model/graph."""
-		pass
+    def __init__(self, embedding_matrix=None, additional_parameters=None):
+        """Initialize the classifier with an (optional) embedding_matrix
+        and/or any other parameters."""
+        self.embedding_matrix = embedding_matrix
 
 
-	def train(self, train_data, train_labels, batch_size=50, num_epochs=5, additional_parameters=None):
-		"""Train the model on the training data."""
-		pass
+    def build(self, model_parameters=None):
+        """Build the model/graph."""
+        pass
 
 
-	def evaluate(self, test_data, test_labels, additional_parameters=None):
-		"""Evaluate the model on the test data.
-
-		returns:
-		:accuracy: the model's accuracy classifying the test data.
-		"""
-
-		pass
+    def train(self, train_data, train_labels, batch_size=50, num_epochs=5, additional_parameters=None):
+        """Train the model on the training data."""
+        pass
 
 
-	def predict(self, review):
-		"""Predict the sentiment of an unlabelled review.
+    def evaluate(self, test_data, test_labels, additional_parameters=None):
+        """Evaluate the model on the test data.
 
-		returns: the predicted label of :review:
-		"""
-		pass
+        returns:
+        :accuracy: the model's accuracy classifying the test data.
+        """
+
+        pass
+
+
+    def predict(self, review):
+        """Predict the sentiment of an unlabelled review.
+
+        returns: the predicted label of :review:
+        """
+        pass

@@ -35,75 +35,76 @@ import nltk
 import gensim
 import sklearn
 
+import os
 
 def load_imdb_data(one_hot_labels=True):
-	"""Load the imdb review data
-	The data can be downloaded here: http://ai.stanford.edu/~amaas/data/sentiment/
+    """Load the imdb review data
+    The data can be downloaded here: http://ai.stanford.edu/~amaas/data/sentiment/
 
-	params:
-	:one_hot_labels: if True, encode labels in one-hot format.
+    params:
+    :one_hot_labels: if True, encode labels in one-hot format.
 
-	returns: X_train, X_test, y_train, y_test
-	"""
-	pass
-
+    returns: X_train, X_test, y_train, y_test
+    """
+    for basename in os.listdir("aclImdb"):
+        pass
 
 def tokenize(text):
-	"""Tokenize and filter a text sample.
-	Hint: nltk
+    """Tokenize and filter a text sample.
+    Hint: nltk
 
-	params:
-	:text: string to be tokenized and filtered.
+    params:
+    :text: string to be tokenized and filtered.
 
-	returns:
-	:tokens: a list of the tokens/words in text.
-	"""
-	pass
+    returns:
+    :tokens: a list of the tokens/words in text.
+    """
+    pass
 
 
 def make_embedding_matrix(texts, size):
-	"""Create an embedding matrix from a list of text samples.
-	Hint: gensim
+    """Create an embedding matrix from a list of text samples.
+    Hint: gensim
 
-	params:
-	:texts: a list of text samples containing the vocabulary words.
-	:size: the size of the word-vectors.
+    params:
+    :texts: a list of text samples containing the vocabulary words.
+    :size: the size of the word-vectors.
 
-	returns:
-	:embedding_matrix: a dictionary mapping words to word-vectors (embeddings).
-	"""
-	pass
+    returns:
+    :embedding_matrix: a dictionary mapping words to word-vectors (embeddings).
+    """
+    pass
 
 
 def load_embedding_matrix(filepath):
-	"""Load a pre-trained embedding matrix
-	Hint: save and load your embeddings to save time tweaking your model.
+    """Load a pre-trained embedding matrix
+    Hint: save and load your embeddings to save time tweaking your model.
 
-	returns:
-	:embedding_matrix: a dictionary mapping words to word-vectors (embeddings).
-	"""
-	pass
+    returns:
+    :embedding_matrix: a dictionary mapping words to word-vectors (embeddings).
+    """
+    pass
 
 
 def to_word_vectors(tokenized_samples, embedding_matrix, max_seq_length):
-	"""Convert the words in each sample into word-vectors.
+    """Convert the words in each sample into word-vectors.
 
-	params:
-	:tokenized_samples: a list of tokenized text samples.
-	:embedding_matrix: a dictionary mapping words to word-vectors.
-	:max_seq_length: the maximum word-length of the samples.
+    params:
+    :tokenized_samples: a list of tokenized text samples.
+    :embedding_matrix: a dictionary mapping words to word-vectors.
+    :max_seq_length: the maximum word-length of the samples.
 =
-	returns: a matrix containing the word-vectors of the samples with size:
-	(num_samples, max_seq_length, word_vector_size).
-	"""
-	pass
+    returns: a matrix containing the word-vectors of the samples with size:
+    (num_samples, max_seq_length, word_vector_size).
+    """
+    pass
 
 
 def generate_batches(data, labels, batch_size, embedding_matrix=None):
-	""""Generate batches of data and labels.
-	Hint: tokenizi
+    """"Generate batches of data and labels.
+    Hint: tokenizi
 
-	returns: batch of data and labels. When an embedding_matrix is passed in,
-	data is tokenized and returned as matrix of word vectors.
-	"""
-	yield batch_data, batch_labels
+    returns: batch of data and labels. When an embedding_matrix is passed in,
+    data is tokenized and returned as matrix of word vectors.
+    """
+    yield batch_data, batch_labels
