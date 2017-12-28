@@ -37,6 +37,18 @@ import sklearn
 
 import os
 
+def read_all(basedir, l=None):
+    """Reads every file from the given directory. Returns a list in which
+    each element contains the contents of one file.  This does not
+    enter directories recursively.
+    """
+    l = []
+    for basename in os.listdir(basedir):
+        fname = os.path.join(basedir, basename)
+        with open(fname) as f:
+            l.append("".join(f.readlines()))
+    return l
+
 def load_imdb_data(one_hot_labels=True):
     """Load the imdb review data
     The data can be downloaded here: http://ai.stanford.edu/~amaas/data/sentiment/
@@ -46,8 +58,23 @@ def load_imdb_data(one_hot_labels=True):
 
     returns: X_train, X_test, y_train, y_test
     """
-    for basename in os.listdir("aclImdb"):
-        pass
+    train_pos = read_all("aclImdb/train/pos")
+    train_neg = read_all("aclImdb/train/neg")
+    test_pos = read_all("aclImdb/test/pos")
+    test_neg = read_all("aclImdb/test/neg")
+    
+    X_train = train_pos + train_neg
+    X_test = test_pos + test_neg
+    # Assign labels:
+    if one_hot_labels:
+        pos = [(1,0)]
+        neg = [(0,1)]
+    else:
+        pos = ["pos"]
+        neg = ["neg"]
+    y_train = pos*len(train_pos) + neg*len(train_neg)
+    y_test =  pos*len(test_pos) + neg*len(test_neg)
+    return X_train, X_test, y_train, y_test
 
 def tokenize(text):
     """Tokenize and filter a text sample.

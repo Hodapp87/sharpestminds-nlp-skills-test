@@ -32,9 +32,9 @@ from __future__ import division
 
 import sys
 import data_preprocessing as dp
-# from models import LSATextClassifier
-# from models import CNNTextClassifier
-# from models import RNNTextClassifier
+from models import LSATextClassifier
+from models import CNNTextClassifier
+from models import RNNTextClassifier
 
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 32
