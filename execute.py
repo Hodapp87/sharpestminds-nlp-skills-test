@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Copyright (c) 2017 Yazabi Predictive Inc.
 
 #################################### MIT License ####################################
@@ -44,10 +45,10 @@ N_FEATURES = 200
 
 if __name__ == "__main__":
 
-    use_model = sys.argv[1]
-    if use_model is None:
-        print('Specify model to be used. LSATextClassifier, RNNTextClassifier or CNNTextClassifier')
+    if len(sys.argv) != 2:
+        print('Specify model to be used: LSATextClassifier, RNNTextClassifier or CNNTextClassifier')
         sys.exit()
+    use_model = sys.argv[1]
 
     # load data
     X_train, X_test, y_train, y_test = dp.load_imdb_data()
@@ -81,5 +82,5 @@ if __name__ == "__main__":
     pos_review = 'This was the greatest thing. I really liked it.'
     neg_pred = model.predict(neg_review)
     pos_pred = model.predict(pos_review)
-    print('Prediction on negative review: ' neg_pred)
-    print('Prediction on positive review: ' pos_pred)
+    print('Prediction on negative review:', neg_pred)
+    print('Prediction on positive review:', pos_pred)

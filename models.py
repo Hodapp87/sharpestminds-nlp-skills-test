@@ -39,6 +39,7 @@ from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer
 from sklearn.linear_model import LogisticRegression
 import sklearn.metrics
+import numpy as np
 
 ## recommended for LSTMTextClassifier
 # from keras.models import Sequential
@@ -140,7 +141,7 @@ class CNNTextClassifier(object):
         """
         pass
 
-class LSTMTextClassifier(object):
+class RNNTextClassifier(object):
     """Fill out this template to create three classes:
     LSATextClassifier(object)
     CNNTextClassifier(object)
