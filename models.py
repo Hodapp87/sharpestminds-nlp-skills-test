@@ -38,7 +38,9 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.decomposition import TruncatedSVD
 from sklearn.preprocessing import Normalizer
 from sklearn.linear_model import LogisticRegression
+
 import sklearn.metrics
+import sklearn.pipeline
 import numpy as np
 
 ## recommended for LSTMTextClassifier
@@ -47,44 +49,43 @@ import numpy as np
 
 class LSATextClassifier(object):
     """Text classifier using Latent Semantic Analysis (LSA) based on
-    sklearn's TfidfVectorizer and TrunatedSVD
+    sklearn's TfidfVectorizer and TrunatedSVD.
     """
 
-    def __init__(self, embedding_matrix=None, additional_parameters=None):
-        """Initialize the classifier with an (optional) embedding_matrix
-        and/or any other parameters."""
-        self.embedding_matrix = embedding_matrix
+    def __init__(self, n_components = 175):
+        """Initialize this classifier. This will compute LSA on the dataset,
+        using n_components as the number of dimensions to reduce it to.
 
+        Parameters:
+        n_components -- Number of components to use for SVD (default 175)
+        """
+        self.n_components = n_components
 
-    def build(self, model_parameters=None):
+    def build(self):
         """Build the model/graph."""
-        self.vectorizer = TfidfVectorizer()
-        # TODO: Factor n_components=100 into arguments/params
-        self.svd = TruncatedSVD(n_components=100)
-        self.lr = LogisticRegression()
+        self.pipeline = sklearn.pipeline.make_pipeline(
+                # Get TF-IDF matrix:
+                TfidfVectorizer(),
+                # Perform LSA by doing SVD on this:
+                TruncatedSVD(n_components=self.n_components),
+                # Use this (reduced-dimensionality, dense) matrix to
+                # train a classifier:
+                LogisticRegression(),
+        )
 
-    def train(self, train_data, train_labels, additional_parameters=None):
+    def train(self, train_data, train_labels):
         """Train the model on the training data."""
-        # Get TF-IDF matrix:
-        tfidf = self.vectorizer.fit_transform(train_data)
-        # Perform LSA by doing SVD on this:
-        lsa = self.svd.fit_transform(tfidf)
-        # Use this reduced-dimensionality dense matrix to train a
-        # classifier:
         y = np.array(train_labels)[:,0]
-        self.lr.fit(lsa, y)
+        self.pipeline.fit(train_data, y)
 
-    def evaluate(self, test_data, test_labels, additional_parameters=None):
+    def evaluate(self, test_data, test_labels):
         """Evaluate the model on the test data.
 
         returns:
         :accuracy: the model's accuracy classifying the test data.
         """
-        # TODO: Make a pipeline
-        tfidf = self.vectorizer.transform(test_data)
-        lsa = self.svd.transform(tfidf)
-        y_target = self.lr.predict(lsa)
-        y_predict = np.array(test_labels)[:,0]
+        y_predict = self.pipeline.predict(test_data)
+        y_target = np.array(test_labels)[:,0]
         accuracy = sklearn.metrics.accuracy_score(y_target, y_predict)
         return accuracy
 
@@ -93,10 +94,8 @@ class LSATextClassifier(object):
 
         returns: the predicted label of :review:
         """
-        tfidf = self.vectorizer.transform([review])
-        lsa = self.svd.transform(tfidf)
-        lr = self.lr.predict(lsa)
-        return lr[0]
+        predict = self.pipeline.predict([review])
+        return predict[0]
 
 class CNNTextClassifier(object):
     """Fill out this template to create three classes:
