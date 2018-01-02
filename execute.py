@@ -31,7 +31,9 @@ from __future__ import print_function
 from __future__ import generators
 from __future__ import division
 
+import pickle
 import sys
+import os
 import data_preprocessing as dp
 from models import LSATextClassifier
 from models import CNNTextClassifier
@@ -43,6 +45,13 @@ NUM_EPOCHS = 10
 MAX_SEQ_LENGTH = 1000
 N_FEATURES = 200
 
+# File to save embedding matrix to:
+emb_mtx_file = "./movie_word_vectors.p"
+
+# File to dump IMDB data to (it's rather slow for me to read each file
+# in, so a pickled version helps move things along):
+imdb_dump_file = "./imdb_data.p"
+
 if __name__ == "__main__":
 
     if len(sys.argv) != 2:
@@ -51,27 +60,52 @@ if __name__ == "__main__":
     use_model = sys.argv[1]
 
     # load data
-    X_train, X_test, y_train, y_test = dp.load_imdb_data()
-
+    if os.path.isfile(imdb_dump_file):
+        print("Loading IMDB dataset dump from {}...".format(imdb_dump_file))
+        f = open(imdb_dump_file, "rb")
+        data = pickle.load(f)
+    else:
+        print("Loading IMDB dataset...")
+        data = dp.load_imdb_data()
+        pickle.dump(data, open(imdb_dump_file, "wb"))
+    X_train, X_test, y_train, y_test = data
+    
     # build and train model
     if use_model == 'LSATextClassifier':
         model = LSATextClassifier()
         model.build()
         model.train(X_train, y_train)
 
-    elif use_model == "TextRNN":
-        embd_matrix = dp.make_embedding_matrix(X_train + X_test, size=EMBEDDING_SIZE)
-        # embd_matrix = dp.load_embedding_matrix(FILENAME)
+    elif use_model == "RNNTextClassifier":
+        if os.path.isfile(emb_mtx_file):
+            print("Loading embedding matrix from {}...".format(emb_mtx_file))
+            embd_matrix = dp.load_embedding_matrix(emb_mtx_file)
+        else:
+            print("No saved embedding matrix found; computing...")
+            embd_matrix = dp.make_embedding_matrix(
+                    X_train + X_test,
+                    size=N_FEATURES,
+                    save_matrix=emb_mtx_file)
         model = RNNTextClassifier()
         model.build()
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
 
-    elif use_model == 'TextCNN':
-        embd_matrix = dp.make_embedding_matrix(X_train + X_test, size=EMBEDDING_SIZE)
-        # embd_matrix = dp.load_embedding_matrix(FILENAME)
-        model = CNNTextClassifier()
-        model.build()
+    elif use_model == 'CNNTextClassifier':
+        if os.path.isfile(emb_mtx_file):
+            print("Loading embedding matrix from {}...".format(emb_mtx_file))
+            embd_matrix = dp.load_embedding_matrix(emb_mtx_file)
+        else:
+            print("No saved embedding matrix found; computing...")
+            embd_matrix = dp.make_embedding_matrix(
+                    X_train + X_test,
+                    size=N_FEATURES,
+                    save_matrix=emb_mtx_file)
+        model = CNNTextClassifier(embd_matrix)
+        model.build(N_FEATURES, MAX_SEQ_LENGTH)
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
+
+    else:
+        raise("Unknown model type {}".format(use_model))
 
     # evaluate model
     accuracy = model.evaluate(X_test, y_test)

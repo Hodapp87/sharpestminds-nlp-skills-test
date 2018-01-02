@@ -30,9 +30,13 @@ from __future__ import print_function
 from __future__ import generators
 from __future__ import division
 
+import pickle
+
 # useful packages
 import nltk
+import nltk.corpus
 import gensim
+from gensim.models.word2vec import Word2Vec
 import sklearn
 
 import os
@@ -46,7 +50,8 @@ def read_all(basedir, l=None):
     for basename in os.listdir(basedir):
         fname = os.path.join(basedir, basename)
         with open(fname) as f:
-            l.append("".join(f.readlines()))
+            data = "".join(f.readlines())
+            l.append(data)
     return l
 
 def load_imdb_data(one_hot_labels=True):
@@ -86,22 +91,30 @@ def tokenize(text):
     returns:
     :tokens: a list of the tokens/words in text.
     """
-    pass
+    tokens = nltk.word_tokenize(text)
+    stopwords = set(nltk.corpus.stopwords.words("english"))
+    tokens = [w for w in tokens if w not in stopwords]
+    return tokens
 
-
-def make_embedding_matrix(texts, size):
-    """Create an embedding matrix from a list of text samples.
-    Hint: gensim
+def make_embedding_matrix(texts, size, save_matrix=None):
+    """Create an embedding matrix from a list of text samples.  If a
+    filename is given in 'save_matrix', then the embedding matrix will
+    also be written to this (from which 'load_embedding_matrix' may
+    then load later).
 
     params:
     :texts: a list of text samples containing the vocabulary words.
     :size: the size of the word-vectors.
+    :save_matrix: optional filename to write embedding matrix to
 
     returns:
     :embedding_matrix: a dictionary mapping words to word-vectors (embeddings).
-    """
-    pass
 
+    """
+    model = Word2Vec([tokenize(s) for s in texts], size)
+    if save_matrix:
+        pickle.dump(model.wv, open(save_matrix, "wb"))
+    return model.wv
 
 def load_embedding_matrix(filepath):
     """Load a pre-trained embedding matrix
@@ -110,8 +123,7 @@ def load_embedding_matrix(filepath):
     returns:
     :embedding_matrix: a dictionary mapping words to word-vectors (embeddings).
     """
-    pass
-
+    return pickle.load(open(filepath, "rb"))
 
 def to_word_vectors(tokenized_samples, embedding_matrix, max_seq_length):
     """Convert the words in each sample into word-vectors.
