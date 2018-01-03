@@ -104,14 +104,16 @@ class CNNTextClassifier(object):
     """Text classifier based on a convolutional neural net in Keras.
     """
 
-    def __init__(self, embedding_matrix=None):
+    def __init__(self, embedding_matrix, max_seq_length):
         """Initialize the classifier with an (optional) embedding_matrix
         and/or any other parameters.
         """
         self.embedding_matrix = embedding_matrix
+        self.word_vector_size = embedding_matrix[embedding_matrix.index2word[0]].size
+        self.max_seq_length = max_seq_length
         self.model = None
 
-    def build(self, word_vector_size, max_seq_length, features=128, depth=5):
+    def build(self, features=128, depth=5):
         """Build the model.
 
         Parameters:
@@ -124,7 +126,7 @@ class CNNTextClassifier(object):
         # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
         m = keras.models.Sequential()
         m.add(Conv1D(features, depth, activation="relu",
-                     input_shape=(max_seq_length, word_vector_size)))
+                     input_shape=(self.max_seq_length, self.word_vector_size)))
         m.add(MaxPooling1D(depth))
         m.add(Conv1D(features, depth, activation="relu"))
         m.add(MaxPooling1D(depth))
@@ -132,14 +134,24 @@ class CNNTextClassifier(object):
         m.add(MaxPooling1D(35))
         m.add(Flatten())
         m.add(Dense(128, activation="relu"))
-        m.add(Dense(2, activation="softmax"))
-
+        m.add(Dense(1, activation="sigmoid"))
+        
+        m.compile(loss='binary_crossentropy',
+                  optimizer='rmsprop',
+                  metrics=['acc'])
         self.model = m
 
-    def train(self, train_data, train_labels, batch_size=50, num_epochs=5, additional_parameters=None):
+    def train(self, train_data, train_labels, batch_size=50, num_epochs=5):
         """Train the model on the training data."""
-        pass
-
+        y = np.array(train_labels)[:,0]
+        gen = dp.generate_batches(
+            train_data, train_labels, batch_size, self.max_seq_length,
+            self.embedding_matrix)
+        self.model.fit_generator(
+            gen,
+            steps_per_epoch=len(train_data) / batch_size,
+            epochs=num_epochs,
+        )
 
     def evaluate(self, test_data, test_labels, additional_parameters=None):
         """Evaluate the model on the test data.

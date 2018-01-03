@@ -38,7 +38,9 @@ import nltk.corpus
 import gensim
 from gensim.models.word2vec import Word2Vec
 import sklearn
+import numpy as np
 
+import random
 import os
 
 def read_all(basedir, l=None):
@@ -136,14 +138,43 @@ def to_word_vectors(tokenized_samples, embedding_matrix, max_seq_length):
     returns: a matrix containing the word-vectors of the samples with size:
     (num_samples, max_seq_length, word_vector_size).
     """
-    pass
+    # Does anyone know a better way of this?
+    # embedding_matrix.vector_size just returns None.
+    word_vector_size = embedding_matrix[embedding_matrix.index2word[0]].size
+    num_samples = len(tokenized_samples)
+    mtx = np.zeros((num_samples, max_seq_length, word_vector_size))
+    for i,tokens in enumerate(tokenized_samples):
+        # Truncate at a certain length (otherwise zero-pad - by
+        # default since we started with np.zeros):
+        for j,token in enumerate(tokens[:max_seq_length]):
+            if token in embedding_matrix:
+                mtx[i,j,:] = embedding_matrix[token]
+            # Just ignore words that aren't found?
+            # TODO: Is that kosher?
+    return mtx
 
-
-def generate_batches(data, labels, batch_size, embedding_matrix=None):
+def generate_batches(data, labels, batch_size, max_seq_length,
+                     embedding_matrix):
     """"Generate batches of data and labels.
-    Hint: tokenizi
+    Hint: tokenize
 
     returns: batch of data and labels. When an embedding_matrix is passed in,
     data is tokenized and returned as matrix of word vectors.
     """
-    yield batch_data, batch_labels
+    num_samples = len(data)
+    while True:
+        i = 0
+        # Since we need to shuffle data & labels identically, get a
+        # list of shuffled indices:
+        shuffle_idxs = np.random.choice(num_samples, num_samples, replace=False)
+        while i < num_samples:
+            # and for each batch, refer to these indices:
+            batch_idxs = shuffle_idxs[i:(i + batch_size)]
+            batch_data = to_word_vectors(
+                [tokenize(data[i]) for i in batch_idxs],
+                embedding_matrix,
+                max_seq_length
+            )
+            batch_labels = np.array([labels[i][0] for i in batch_idxs])
+            i += batch_size
+            yield batch_data, batch_labels

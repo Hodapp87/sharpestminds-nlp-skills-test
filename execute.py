@@ -100,8 +100,8 @@ if __name__ == "__main__":
                     X_train + X_test,
                     size=N_FEATURES,
                     save_matrix=emb_mtx_file)
-        model = CNNTextClassifier(embd_matrix)
-        model.build(N_FEATURES, MAX_SEQ_LENGTH)
+        model = CNNTextClassifier(embd_matrix, MAX_SEQ_LENGTH)
+        model.build()
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
 
     else:
