@@ -42,6 +42,7 @@ from models import RNNTextClassifier
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 32
 NUM_EPOCHS = 10
+#NUM_EPOCHS = 1
 MAX_SEQ_LENGTH = 1000
 N_FEATURES = 200
 

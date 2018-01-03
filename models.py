@@ -44,7 +44,7 @@ import sklearn.pipeline
 import numpy as np
 
 import keras
-from keras.layers import Conv1D, MaxPooling1D, Dense, Flatten
+from keras.layers import Conv1D, MaxPooling1D, Dense, Flatten, Dropout
 
 ## recommended for LSTMTextClassifier
 # from keras.models import Sequential
@@ -135,6 +135,7 @@ class CNNTextClassifier(object):
         m.add(Flatten())
         m.add(Dense(128, activation="relu"))
         m.add(Dense(1, activation="sigmoid"))
+        # TODO: Add Dropout?
         
         m.compile(loss='binary_crossentropy',
                   optimizer='rmsprop',
@@ -152,23 +153,36 @@ class CNNTextClassifier(object):
             steps_per_epoch=len(train_data) / batch_size,
             epochs=num_epochs,
         )
+        # TODO: Remove
+        self.model.save_weights("cnn_text_classifier.h5")
 
-    def evaluate(self, test_data, test_labels, additional_parameters=None):
+    def evaluate(self, test_data, test_labels):
         """Evaluate the model on the test data.
 
         returns:
         :accuracy: the model's accuracy classifying the test data.
         """
-
-        pass
-
+        batch_size=32
+        y = np.array(test_labels)[:,0]
+        gen = dp.generate_batches(
+            test_data, test_labels, batch_size, self.max_seq_length,
+            self.embedding_matrix)
+        ev = self.model.evaluate_generator(
+            gen,
+            steps=len(test_data) / batch_size,
+        )
+        return ev[self.model.metrics_names.index("acc")]
 
     def predict(self, review):
         """Predict the sentiment of an unlabelled review.
 
         returns: the predicted label of :review:
         """
-        pass
+        tokens = dp.tokenize(review)
+        wvs = dp.to_word_vectors([tokens], self.embedding_matrix,
+                                 self.max_seq_length)
+        y_predict = self.model.predict(wvs)
+        return y_predict
 
 class RNNTextClassifier(object):
     """Fill out this template to create three classes:
