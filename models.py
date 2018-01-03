@@ -182,7 +182,7 @@ class CNNTextClassifier(object):
         wvs = dp.to_word_vectors([tokens], self.embedding_matrix,
                                  self.max_seq_length)
         y_predict = self.model.predict(wvs)
-        return y_predict
+        return y_predict[0,0]
 
 class RNNTextClassifier(object):
     """Fill out this template to create three classes:
