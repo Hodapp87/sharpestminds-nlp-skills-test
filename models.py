@@ -30,7 +30,12 @@ from __future__ import print_function
 from __future__ import generators
 from __future__ import division
 
-# import tensorflow as tf   # (optional) feel free to build your models using keras
+import numpy as np
+
+# Random seed must be given before Keras imports if things are to be
+# kept determinstic:
+SEED = 0x12345
+np.random.seed(SEED)
 
 import data_preprocessing as dp
 
@@ -41,14 +46,13 @@ from sklearn.linear_model import LogisticRegression
 
 import sklearn.metrics
 import sklearn.pipeline
-import numpy as np
 
 import keras
 from keras.layers import Conv1D, MaxPooling1D, Dense, Flatten, Dropout
 
 ## recommended for LSTMTextClassifier
-# from keras.models import Sequential
-# from keras.layers import Dense, Embedding, LSTM
+from keras.models import Sequential
+from keras.layers import Dense, Embedding, LSTM
 
 class LSATextClassifier(object):
     """Text classifier using Latent Semantic Analysis (LSA) based on
@@ -113,29 +117,32 @@ class CNNTextClassifier(object):
         self.max_seq_length = max_seq_length
         self.model = None
 
-    def build(self, features=128, depth=5):
+    def build(self, features=128, kernel=5):
         """Build the model.
 
         Parameters:
         word_vector_size -- Length of word vectors
         max_seq_length -- Maximum size of a word vector sequence
         features -- Number of features in hidden layers (default 128)
-        depth -- Depth of hidden layers (default 5)
+        kernel -- Convolution kernel size (default 5)
         """
         # Model is based around:
         # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
         m = keras.models.Sequential()
-        m.add(Conv1D(features, depth, activation="relu",
+        m.add(Conv1D(features, kernel, activation="relu",
                      input_shape=(self.max_seq_length, self.word_vector_size)))
-        m.add(MaxPooling1D(depth))
-        m.add(Conv1D(features, depth, activation="relu"))
-        m.add(MaxPooling1D(depth))
-        m.add(Conv1D(features, depth, activation="relu"))
+        #m.add(Dropout(0.25))
+        m.add(MaxPooling1D(kernel))
+        m.add(Conv1D(features, kernel, activation="relu"))
+        #m.add(Dropout(0.25))
+        m.add(MaxPooling1D(kernel))
+        m.add(Conv1D(features, kernel, activation="relu"))
+        #m.add(Dropout(0.25))
         m.add(MaxPooling1D(35))
         m.add(Flatten())
         m.add(Dense(128, activation="relu"))
+        m.add(Dropout(0.3))
         m.add(Dense(1, activation="sigmoid"))
-        # TODO: Add Dropout?
         
         m.compile(loss='binary_crossentropy',
                   optimizer='rmsprop',
@@ -144,14 +151,28 @@ class CNNTextClassifier(object):
 
     def train(self, train_data, train_labels, batch_size=50, num_epochs=5):
         """Train the model on the training data."""
-        y = np.array(train_labels)[:,0]
-        gen = dp.generate_batches(
+        # Split some data off for validation:
+        num_samples = len(train_data)
+        shuffle_idxs = np.random.choice(num_samples, num_samples, replace=False)
+        split = int(num_samples * 0.8)
+        train_idxs, valid_idxs = shuffle_idxs[:split], shuffle_idxs[split:]
+        valid_data   = [train_data[i]   for i in valid_idxs]
+        valid_labels = [train_labels[i] for i in valid_idxs]
+        train_data   = [train_data[i]   for i in train_idxs]
+        train_labels = [train_labels[i] for i in train_idxs]
+        # Create separate training & validation generators:
+        train_gen = dp.generate_batches(
             train_data, train_labels, batch_size, self.max_seq_length,
             self.embedding_matrix)
+        valid_gen = dp.generate_batches(
+            valid_data, valid_labels, batch_size, self.max_seq_length,
+            self.embedding_matrix)
         self.model.fit_generator(
-            gen,
+            train_gen,
             steps_per_epoch=len(train_data) / batch_size,
             epochs=num_epochs,
+            validation_data=valid_gen,
+            validation_steps=len(valid_data) / batch_size,
         )
         # TODO: Remove
         self.model.save_weights("cnn_text_classifier.h5")

@@ -154,12 +154,18 @@ def to_word_vectors(tokenized_samples, embedding_matrix, max_seq_length):
     return mtx
 
 def generate_batches(data, labels, batch_size, max_seq_length,
-                     embedding_matrix):
+                     embedding_matrix, rng=None):
     """"Generate batches of data and labels.
-    Hint: tokenize
 
-    returns: batch of data and labels. When an embedding_matrix is passed in,
-    data is tokenized and returned as matrix of word vectors.
+    Parameters:
+    data -- List of strings
+    labels -- List of one-hot encoded labels, corresponding with 'data'
+    batch_size -- Size of batch to generate
+    max_seq_length -- Maximum number of word vectors to handle in string
+    embedding_matrix -- A dictionary mapping words to word-vectors
+    rng -- Optional RandomState for shuffling
+
+    Returns: (batch of data, batch of labels).
     """
     num_samples = len(data)
     while True:

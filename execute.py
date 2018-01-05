@@ -103,7 +103,7 @@ if __name__ == "__main__":
                     save_matrix=emb_mtx_file)
         model = CNNTextClassifier(embd_matrix, MAX_SEQ_LENGTH)
         model.build()
-        model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
+        model.train(X_train, y_train, BATCH_SIZE, 5)
 
     else:
         raise("Unknown model type {}".format(use_model))
