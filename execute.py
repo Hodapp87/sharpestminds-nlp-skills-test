@@ -41,8 +41,8 @@ from models import RNNTextClassifier
 
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 32
-NUM_EPOCHS = 10
-#NUM_EPOCHS = 1
+NUM_EPOCHS_CNN = 5
+NUM_EPOCHS_RNN = 5
 MAX_SEQ_LENGTH = 1000
 N_FEATURES = 200
 
@@ -88,9 +88,9 @@ if __name__ == "__main__":
                     X_train + X_test,
                     size=N_FEATURES,
                     save_file=emb_mtx_file)
-        model = RNNTextClassifier()
+        model = RNNTextClassifier(embd_matrix, idx2word, MAX_SEQ_LENGTH)
         model.build()
-        model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
+        model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS_RNN)
 
     elif use_model == 'CNNTextClassifier':
         if os.path.isfile(emb_mtx_file):
@@ -104,7 +104,7 @@ if __name__ == "__main__":
                     save_file=emb_mtx_file)
         model = CNNTextClassifier(embd_matrix, idx2word, MAX_SEQ_LENGTH)
         model.build()
-        model.train(X_train, y_train, BATCH_SIZE, 5)
+        model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS_CNN)
 
     else:
         raise("Unknown model type {}".format(use_model))

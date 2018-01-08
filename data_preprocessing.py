@@ -139,8 +139,33 @@ def load_embedding_matrix(filepath):
     """
     return pickle.load(open(filepath, "rb"))
 
+def encode_words(text, word2idx, seq_length):
+    """Tokenize the given text, convert it to word indices by the given
+    dictionary, pad it to some length, and return it as a NumPy array.
+
+    Words not in word2idx are just ignored, and the sequence is
+    truncated at 'seq_length'.
+
+    Parameters:
+    text -- Text string to encode
+    word2idx -- Dictionary mapping words to word indices
+    seq_length -- Maximum sequence length
+
+    Returns:
+    NumPy integer array of shape (seq_length,) containing word indices.
+    """
+    idxs = np.zeros((seq_length,), dtype=np.int32)
+    pos = 0
+    # Note list truncation below:
+    for word in tokenize(text)[:seq_length]:
+        if word in word2idx:
+            idxs[pos] = word2idx[word]
+            pos += 1
+    return idxs
+
 def generate_batches(data, labels, batch_size, max_seq_length,
                      word2idx):
+
     """Generate batches of data and labels.  This will repeatedly iterate
     through the data, shuffling it at each epoch.  The batch of data
     will be of shape (batch_size, max_seq_length).
@@ -166,19 +191,8 @@ def generate_batches(data, labels, batch_size, max_seq_length,
             batch_idxs = shuffle_idxs[i:(i + batch_size)]
             batch_data = np.zeros((len(batch_idxs), max_seq_length))
             for batch,j in enumerate(batch_idxs):
-                # TODO: This just drops words that weren't put into
-                # the vocabulary, which somehow seems sub-optimal
-                pos = 0
-                for word in tokenize(data[j]):
-                    if pos < max_seq_length and word in word2idx:
-                        batch_data[batch, pos] = word2idx[word]
-                        pos += 1
-                #words = [word2idx[w] for w in data[j] if w in word2idx]
-                # TODO: This is sub-optimal; it converts every single
-                # word in the string even though at most
-                # max_seq_length words are used.
-                #max_idx = min(max_seq_length, len(words))
-                #batch_data[batch, :max_idx] = words[:max_idx]
+                batch_data[batch, :] = encode_words(
+                    data[j], word2idx, max_seq_length)
             batch_labels = np.array([labels[i][0] for i in batch_idxs])
             i += batch_size
             yield batch_data, batch_labels
