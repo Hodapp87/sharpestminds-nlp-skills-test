@@ -169,7 +169,7 @@ def generate_batches(data, labels, batch_size, max_seq_length,
                 # TODO: This just drops words that weren't put into
                 # the vocabulary, which somehow seems sub-optimal
                 pos = 0
-                for word in data[j]:
+                for word in tokenize(data[j]):
                     if pos < max_seq_length and word in word2idx:
                         batch_data[batch, pos] = word2idx[word]
                         pos += 1
