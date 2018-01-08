@@ -42,7 +42,7 @@ from models import RNNTextClassifier
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 32
 NUM_EPOCHS_CNN = 5
-NUM_EPOCHS_RNN = 5
+NUM_EPOCHS_RNN = 10
 MAX_SEQ_LENGTH = 1000
 N_FEATURES = 200
 
@@ -53,6 +53,18 @@ emb_mtx_file = "./movie_word_vectors.p"
 # File to dump IMDB data to (it's rather slow for me to read each file
 # in, so a pickled version helps move things along):
 imdb_dump_file = "./imdb_data.p"
+
+def get_embedded_matrix(X_train, X_test):
+    if os.path.isfile(emb_mtx_file):
+        print("Loading embedding matrix from {}...".format(emb_mtx_file))
+        embd_matrix, word2idx = dp.load_embedding_matrix(emb_mtx_file)
+    else:
+        print("No saved embedding matrix found; computing...")
+        embd_matrix, word2idx = dp.make_embedding_matrix(
+                X_train + X_test,
+                size=N_FEATURES,
+                save_file=emb_mtx_file)
+    return embd_matrix, word2idx
 
 if __name__ == "__main__":
 
@@ -79,30 +91,14 @@ if __name__ == "__main__":
         model.train(X_train, y_train)
 
     elif use_model == "RNNTextClassifier":
-        if os.path.isfile(emb_mtx_file):
-            print("Loading embedding matrix from {}...".format(emb_mtx_file))
-            embd_matrix, idx2word = dp.load_embedding_matrix(emb_mtx_file)
-        else:
-            print("No saved embedding matrix found; computing...")
-            embd_matrix, idx2word = dp.make_embedding_matrix(
-                    X_train + X_test,
-                    size=N_FEATURES,
-                    save_file=emb_mtx_file)
-        model = RNNTextClassifier(embd_matrix, idx2word, MAX_SEQ_LENGTH)
+        embd_matrix, word2idx = get_embedded_matrix(X_train, X_test)
+        model = RNNTextClassifier(embd_matrix, word2idx, 100)
         model.build()
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS_RNN)
 
     elif use_model == 'CNNTextClassifier':
-        if os.path.isfile(emb_mtx_file):
-            print("Loading embedding matrix from {}...".format(emb_mtx_file))
-            embd_matrix, idx2word = dp.load_embedding_matrix(emb_mtx_file)
-        else:
-            print("No saved embedding matrix found; computing...")
-            embd_matrix, idx2word = dp.make_embedding_matrix(
-                    X_train + X_test,
-                    size=N_FEATURES,
-                    save_file=emb_mtx_file)
-        model = CNNTextClassifier(embd_matrix, idx2word, MAX_SEQ_LENGTH)
+        embd_matrix, word2idx = get_embedded_matrix(X_train, X_test)
+        model = CNNTextClassifier(embd_matrix, word2idx, MAX_SEQ_LENGTH)
         model.build()
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS_CNN)
 

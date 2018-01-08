@@ -247,7 +247,10 @@ class RNNTextClassifier(IMDB_NN_Classifier):
         m = Sequential()
         vocab_size, word_vector_size = self.embedding_matrix.shape
         m.add(Embedding(vocab_size, word_vector_size,
-                        weights=[self.embedding_matrix], trainable=False))
+                        weights=[self.embedding_matrix],
+                        trainable=False))
+        # To ignore word vectors:
+        #m.add(Embedding(vocab_size, word_vector_size))
         m.add(LSTM(units, dropout=0.2, recurrent_dropout=0.2))
         m.add(Dense(1, activation="sigmoid"))
 
