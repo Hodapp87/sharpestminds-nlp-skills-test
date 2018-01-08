@@ -49,6 +49,7 @@ N_FEATURES = 200
 # File to save embedding matrix to:
 emb_mtx_file = "./movie_word_vectors.p"
 
+
 # File to dump IMDB data to (it's rather slow for me to read each file
 # in, so a pickled version helps move things along):
 imdb_dump_file = "./imdb_data.p"
@@ -80,13 +81,13 @@ if __name__ == "__main__":
     elif use_model == "RNNTextClassifier":
         if os.path.isfile(emb_mtx_file):
             print("Loading embedding matrix from {}...".format(emb_mtx_file))
-            embd_matrix = dp.load_embedding_matrix(emb_mtx_file)
+            embd_matrix, idx2word = dp.load_embedding_matrix(emb_mtx_file)
         else:
             print("No saved embedding matrix found; computing...")
-            embd_matrix = dp.make_embedding_matrix(
+            embd_matrix, idx2word = dp.make_embedding_matrix(
                     X_train + X_test,
                     size=N_FEATURES,
-                    save_matrix=emb_mtx_file)
+                    save_file=emb_mtx_file)
         model = RNNTextClassifier()
         model.build()
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS)
@@ -94,14 +95,14 @@ if __name__ == "__main__":
     elif use_model == 'CNNTextClassifier':
         if os.path.isfile(emb_mtx_file):
             print("Loading embedding matrix from {}...".format(emb_mtx_file))
-            embd_matrix = dp.load_embedding_matrix(emb_mtx_file)
+            embd_matrix, idx2word = dp.load_embedding_matrix(emb_mtx_file)
         else:
             print("No saved embedding matrix found; computing...")
-            embd_matrix = dp.make_embedding_matrix(
+            embd_matrix, idx2word = dp.make_embedding_matrix(
                     X_train + X_test,
                     size=N_FEATURES,
-                    save_matrix=emb_mtx_file)
-        model = CNNTextClassifier(embd_matrix, MAX_SEQ_LENGTH)
+                    save_file=emb_mtx_file)
+        model = CNNTextClassifier(embd_matrix, idx2word, MAX_SEQ_LENGTH)
         model.build()
         model.train(X_train, y_train, BATCH_SIZE, 5)
 

@@ -48,15 +48,13 @@ import sklearn.metrics
 import sklearn.pipeline
 
 import keras
-from keras.layers import Conv1D, MaxPooling1D, Dense, Flatten, Dropout
-
-## recommended for LSTMTextClassifier
-from keras.models import Sequential
-from keras.layers import Dense, Embedding, LSTM
+from keras.layers import Conv1D, MaxPooling1D, Dense, Flatten, \
+    Dropout, Input, Embedding, LSTM
+from keras.models import Sequential, Model
 
 class LSATextClassifier(object):
     """Text classifier using Latent Semantic Analysis (LSA) based on
-    sklearn's TfidfVectorizer and TrunatedSVD.
+    sklearn's TfidfVectorizer and TruncatedSVD.
     """
 
     def __init__(self, n_components = 175):
@@ -108,12 +106,18 @@ class CNNTextClassifier(object):
     """Text classifier based on a convolutional neural net in Keras.
     """
 
-    def __init__(self, embedding_matrix, max_seq_length):
+    def __init__(self, embedding_matrix, word2idx, max_seq_length):
         """Initialize the classifier with an (optional) embedding_matrix
         and/or any other parameters.
+
+        Parameters:
+        embedding_matrix -- NumPy array where row I is the word vector of the
+                            word with index I. 
+        word2idx -- Dictionary mapping word to word index
+        max_seq_length -- Maximum size of a word vector sequence
         """
         self.embedding_matrix = embedding_matrix
-        self.word_vector_size = embedding_matrix[embedding_matrix.index2word[0]].size
+        self.word2idx = word2idx
         self.max_seq_length = max_seq_length
         self.model = None
 
@@ -121,33 +125,37 @@ class CNNTextClassifier(object):
         """Build the model.
 
         Parameters:
-        word_vector_size -- Length of word vectors
-        max_seq_length -- Maximum size of a word vector sequence
         features -- Number of features in hidden layers (default 128)
         kernel -- Convolution kernel size (default 5)
         """
         # Model is based around:
         # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
-        m = keras.models.Sequential()
-        m.add(Conv1D(features, kernel, activation="relu",
-                     input_shape=(self.max_seq_length, self.word_vector_size)))
+        input_ = Input(shape=(self.max_seq_length,), dtype='int32')
+        vocab_size, word_vector_size = self.embedding_matrix.shape
+        x = Embedding(vocab_size, word_vector_size,
+                      weights=[self.embedding_matrix],
+                      input_length=self.max_seq_length,
+                      trainable=False)(input_)
+        x = Conv1D(features, kernel, activation="relu")(x)
         #m.add(Dropout(0.25))
-        m.add(MaxPooling1D(kernel))
-        m.add(Conv1D(features, kernel, activation="relu"))
+        x = MaxPooling1D(kernel)(x)
+        x = Conv1D(features, kernel, activation="relu")(x)
         #m.add(Dropout(0.25))
-        m.add(MaxPooling1D(kernel))
-        m.add(Conv1D(features, kernel, activation="relu"))
+        x = MaxPooling1D(kernel)(x)
+        x = Conv1D(features, kernel, activation="relu")(x)
         #m.add(Dropout(0.25))
-        m.add(MaxPooling1D(35))
-        m.add(Flatten())
-        m.add(Dense(128, activation="relu"))
-        m.add(Dropout(0.3))
-        m.add(Dense(1, activation="sigmoid"))
-        
-        m.compile(loss='binary_crossentropy',
-                  optimizer='rmsprop',
-                  metrics=['acc'])
-        self.model = m
+        x = MaxPooling1D(35)(x)
+        x = Flatten()(x)
+        x = Dense(128, activation="relu")(x)
+        #x = Dropout(0.3)(x)
+        x = Dense(1, activation="sigmoid")(x)
+
+        self.model = Model(inputs=[input_], outputs=[x])
+
+        print(self.model.summary())
+        self.model.compile(loss='binary_crossentropy',
+                           optimizer='rmsprop',
+                           metrics=['acc'])
 
     def train(self, train_data, train_labels, batch_size=50, num_epochs=5):
         """Train the model on the training data."""
@@ -163,10 +171,10 @@ class CNNTextClassifier(object):
         # Create separate training & validation generators:
         train_gen = dp.generate_batches(
             train_data, train_labels, batch_size, self.max_seq_length,
-            self.embedding_matrix)
+            self.word2idx)
         valid_gen = dp.generate_batches(
             valid_data, valid_labels, batch_size, self.max_seq_length,
-            self.embedding_matrix)
+            self.word2idx)
         self.model.fit_generator(
             train_gen,
             steps_per_epoch=len(train_data) / batch_size,
@@ -187,7 +195,7 @@ class CNNTextClassifier(object):
         y = np.array(test_labels)[:,0]
         gen = dp.generate_batches(
             test_data, test_labels, batch_size, self.max_seq_length,
-            self.embedding_matrix)
+            self.word2idx)
         ev = self.model.evaluate_generator(
             gen,
             steps=len(test_data) / batch_size,
@@ -200,19 +208,12 @@ class CNNTextClassifier(object):
         returns: the predicted label of :review:
         """
         tokens = dp.tokenize(review)
-        wvs = dp.to_word_vectors([tokens], self.embedding_matrix,
-                                 self.max_seq_length)
-        y_predict = self.model.predict(wvs)
+        words = [self.word2idx[w] for w in tokens]
+        y_predict = self.model.predict([words])
         return y_predict[0,0]
 
 class RNNTextClassifier(object):
-    """Fill out this template to create three classes:
-    LSATextClassifier(object)
-    CNNTextClassifier(object)
-    LSTMTextClassifier(object)
-
-    Modify the code as much as you need.
-    Add arguments to the functions and add as many other functions/classes as you wish.
+    """
     """
 
     def __init__(self, embedding_matrix=None, additional_parameters=None):
