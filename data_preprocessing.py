@@ -53,45 +53,49 @@ def read_all(basedir, l=None):
         fname = os.path.join(basedir, basename)
         with open(fname) as f:
             data = "".join(f.readlines())
+            data = data.lower()
             l.append(data)
     return l
 
-def load_imdb_data(one_hot_labels=True):
-    """Load the imdb review data
-    The data can be downloaded here: http://ai.stanford.edu/~amaas/data/sentiment/
+def load_imdb_data():
+    """Load the IMDB review data.  The data can be downloaded here:
+    http://ai.stanford.edu/~amaas/data/sentiment/
 
-    params:
-    :one_hot_labels: if True, encode labels in one-hot format.
+    Returned labels are 1 for a positive review, 0 for a negative
+    review.  This also returns unsupervised training strings contained
+    in the dataset; these are simply reviews not containing labels.
 
-    returns: X_train, X_test, y_train, y_test
+    Returns:
+    X_train -- Training set reviews as a list of strings
+    X_test -- Test set reviews as a list of strings
+    y_train -- List of labels corresponding to X_train
+    y_test -- List of labels corresponding to X_test
+    X_unsup -- Unsupervised reviews as a list of strings
     """
     train_pos = read_all("aclImdb/train/pos")
     train_neg = read_all("aclImdb/train/neg")
     test_pos = read_all("aclImdb/test/pos")
     test_neg = read_all("aclImdb/test/neg")
-    
+
+    # Combine positive/negative reviews, and create labels:
     X_train = train_pos + train_neg
     X_test = test_pos + test_neg
-    # Assign labels:
-    if one_hot_labels:
-        pos = [(1,0)]
-        neg = [(0,1)]
-    else:
-        pos = ["pos"]
-        neg = ["neg"]
-    y_train = pos*len(train_pos) + neg*len(train_neg)
-    y_test =  pos*len(test_pos) + neg*len(test_neg)
-    return X_train, X_test, y_train, y_test
+    y_train = [1]*len(train_pos) + [0]*len(train_neg)
+    y_test =  [1]*len(test_pos) + [0]*len(test_neg)
+
+    # Unsupervised reviews are by themselves:
+    X_unsup = read_all("aclImdb/train/unsup")
+
+    return X_train, X_test, y_train, y_test, X_unsup
 
 def tokenize(text):
     """Tokenize and filter a text sample.
-    Hint: nltk
 
-    params:
-    :text: string to be tokenized and filtered.
+    Parameters:
+    text -- string to be tokenized and filtered.
 
-    returns:
-    :tokens: a list of the tokens/words in text.
+    Returns:
+    tokens -- a list of the tokens/words in text.
     """
     tokens = nltk.word_tokenize(text)
     stopwords = set(nltk.corpus.stopwords.words("english"))
@@ -99,45 +103,31 @@ def tokenize(text):
     return tokens
 
 def make_embedding_matrix(texts, size, save_file=None):
-    """Create an embedding matrix & dictionary from a list of text
-    samples.  If a filename is given in 'save_file', then the
-    embedding matrix & dictionary will also be written to this (from
-    which 'load_embedding_matrix' may then load later).
+    """Create a Word2Vec model from a list of text samples.  If a filename
+    is given in 'save_file', then the model will also be written to
+    this (from which 'load_embedding_matrix' may then load later).
 
-    In the returned values, the word index of 0 is reserved for no
-    word.
+    Parameters:
+    texts -- a list of text samples containing the vocabulary words.
+    size -- the size of the word-vectors.
+    save_file -- optional filename to write Word2Vec model to
 
-    params:
-    :texts: a list of text samples containing the vocabulary words.
-    :size: the size of the word-vectors.
-    :save_file: optional filename to write embedding matrix & dictionary to
-
-    returns:
-    :embedding_matrix: NumPy array where row I is the word vector of the
-                       word with index I.
-    :word2index: Dictionary mapping words to row indices in embedding_matrix
+    Returns: Trained Word2Vec model from gensim
     """
-    model = Word2Vec([tokenize(s) for s in texts], size)
-    vocab_size = len(model.wv.vocab)
-    word_vector_size = model[model.wv.index2word[0]].size
-    array = np.zeros((vocab_size + 1, word_vector_size))
-    word2idx = {}
-    for i,word in enumerate(model.wv.vocab):
-        array[i + 1, :] = model.wv[word]
-        word2idx[word] = i + 1
+    model = Word2Vec([tokenize(s) for s in texts], size, sorted_vocab=1)
     if save_file:
-        pickle.dump((array, word2idx), open(save_file, "wb"))
-    return array, word2idx
+        model.save(save_file)
+    return model
 
 def load_embedding_matrix(filepath):
-    """Load a pre-trained embedding matrix & dictionary.
+    """Load a pre-trained Word2Vec model from a file.
 
-    returns:
-    :embedding_matrix: NumPy array where row I is the word vector of the
-                       word with index I.
-    :word2index: Dictionary mapping words to row indices in embedding_matrix
+    Parameters:
+    filepath -- Path to filename containing saved model.
+
+    Returns: gensim Word2Vec model
     """
-    return pickle.load(open(filepath, "rb"))
+    return Word2Vec.load(filepath)
 
 def encode_words(text, word2idx, seq_length):
     """Tokenize the given text, convert it to word indices by the given
@@ -157,30 +147,34 @@ def encode_words(text, word2idx, seq_length):
     idxs = np.zeros((seq_length,), dtype=np.int32)
     pos = 0
     # Note list truncation below:
-    for word in tokenize(text)[:seq_length]:
-        if word in word2idx:
-            idxs[pos] = word2idx[word]
-            pos += 1
+    for pos,word in enumerate(tokenize(text)[:seq_length]):
+        idxs[pos] = word2idx.get(word, 1)
     return idxs
 
 def generate_batches(data, labels, batch_size, max_seq_length,
                      word2idx):
 
-    """Generate batches of data and labels.  This will repeatedly iterate
-    through the data, shuffling it at each epoch.  The batch of data
-    will be of shape (batch_size, max_seq_length).
+    """Generate batches of data and labels.  This will indefinitely
+    iterate through the data, re-shuffling it at each epoch, and
+    yielding (batch_data, batch_labels) at each iteration, suitable
+    for fit_generator and evaluate_generator in Keras.
 
     Parameters:
     data -- List of strings
-    labels -- List of one-hot encoded labels, corresponding with 'data'
+    labels -- List of binary labels corresponding with 'data'
     batch_size -- Size of batch to generate
     max_seq_length -- Maximum number of words to handle in string
     word2idx -- Dictionary mapping words to word indices
 
-    Returns: (batch of data, batch of labels).
+    Yields:
+    batch_data -- NumPy array with one batch of data; shape is
+                  (batch_size, max_seq_length).
+    batch_labels -- NumPy array with corresponding binary labels;
+                    shape is (batch_size,).
 
     """
     num_samples = len(data)
+    labels = np.array(labels)
     while True:
         i = 0
         # Since we need to shuffle data & labels identically, get a
@@ -193,6 +187,6 @@ def generate_batches(data, labels, batch_size, max_seq_length,
             for batch,j in enumerate(batch_idxs):
                 batch_data[batch, :] = encode_words(
                     data[j], word2idx, max_seq_length)
-            batch_labels = np.array([labels[i][0] for i in batch_idxs])
+            batch_labels = labels[batch_idxs]
             i += batch_size
             yield batch_data, batch_labels

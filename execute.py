@@ -42,29 +42,28 @@ from models import RNNTextClassifier
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 32
 NUM_EPOCHS_CNN = 5
-NUM_EPOCHS_RNN = 10
+NUM_EPOCHS_RNN = 30
 MAX_SEQ_LENGTH = 1000
 N_FEATURES = 200
 
 # File to save embedding matrix to:
-emb_mtx_file = "./movie_word_vectors.p"
-
+emb_mtx_file = "./imdb_gensim_word2vec.p"
 
 # File to dump IMDB data to (it's rather slow for me to read each file
 # in, so a pickled version helps move things along):
 imdb_dump_file = "./imdb_data.p"
 
-def get_embedded_matrix(X_train, X_test):
+def get_embedded_matrix(text):
     if os.path.isfile(emb_mtx_file):
-        print("Loading embedding matrix from {}...".format(emb_mtx_file))
-        embd_matrix, word2idx = dp.load_embedding_matrix(emb_mtx_file)
+        print("Loading Word2Vec model from {}...".format(emb_mtx_file))
+        word2vec = dp.load_embedding_matrix(emb_mtx_file)
     else:
-        print("No saved embedding matrix found; computing...")
-        embd_matrix, word2idx = dp.make_embedding_matrix(
-                X_train + X_test,
-                size=N_FEATURES,
-                save_file=emb_mtx_file)
-    return embd_matrix, word2idx
+        print("No saved Word2Vec model found; computing...")
+        word2vec = dp.make_embedding_matrix(
+            text,
+            size=N_FEATURES,
+            save_file=emb_mtx_file)
+    return word2vec
 
 if __name__ == "__main__":
 
@@ -82,7 +81,8 @@ if __name__ == "__main__":
         print("Loading IMDB dataset...")
         data = dp.load_imdb_data()
         pickle.dump(data, open(imdb_dump_file, "wb"))
-    X_train, X_test, y_train, y_test = data
+    X_train, X_test, y_train, y_test, X_unsup = data
+    X_all = X_train + X_test + X_unsup
     
     # build and train model
     if use_model == 'LSATextClassifier':
@@ -91,14 +91,14 @@ if __name__ == "__main__":
         model.train(X_train, y_train)
 
     elif use_model == "RNNTextClassifier":
-        embd_matrix, word2idx = get_embedded_matrix(X_train, X_test)
-        model = RNNTextClassifier(embd_matrix, word2idx, 100)
-        model.build()
+        word2vec = get_embedded_matrix(X_all)
+        model = RNNTextClassifier(word2vec, 10000, 350)
+        model.build(64)
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS_RNN)
 
     elif use_model == 'CNNTextClassifier':
-        embd_matrix, word2idx = get_embedded_matrix(X_train, X_test)
-        model = CNNTextClassifier(embd_matrix, word2idx, MAX_SEQ_LENGTH)
+        word2vec = get_embedded_matrix(X_all)
+        model = CNNTextClassifier(word2vec, 10000, MAX_SEQ_LENGTH)
         model.build()
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS_CNN)
 
