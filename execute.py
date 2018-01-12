@@ -39,12 +39,18 @@ from models import LSATextClassifier
 from models import CNNTextClassifier
 from models import RNNTextClassifier
 
+# How many words of sequence to use:
+MAX_SEQ_LENGTH = 1000
+# How many words to use in vocabulary (from most-frequent):
+VOCAB_SIZE = 10000
+# Dimensions in embedding matrix:
+N_FEATURES = 200
+
+# Training parameters for RNN & CNN:
 LEARNING_RATE = 1e-4
 BATCH_SIZE = 32
-NUM_EPOCHS_CNN = 5
-NUM_EPOCHS_RNN = 30
-MAX_SEQ_LENGTH = 1000
-N_FEATURES = 200
+NUM_EPOCHS_CNN = 7
+NUM_EPOCHS_RNN = 25
 
 # File to save embedding matrix to:
 emb_mtx_file = "./imdb_gensim_word2vec.p"
@@ -84,7 +90,9 @@ if __name__ == "__main__":
     X_train, X_test, y_train, y_test, X_unsup = data
     X_all = X_train + X_test + X_unsup
     
-    # build and train model
+    # Build and train model. Note that if an embedding matrix is used,
+    # it is derived from all text (including testing text and the
+    # unsupervised training text).
     if use_model == 'LSATextClassifier':
         model = LSATextClassifier()
         model.build()
@@ -92,18 +100,18 @@ if __name__ == "__main__":
 
     elif use_model == "RNNTextClassifier":
         word2vec = get_embedded_matrix(X_all)
-        model = RNNTextClassifier(word2vec, 10000, 350)
+        model = RNNTextClassifier(word2vec, VOCAB_SIZE, 300)
         model.build(64)
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS_RNN)
 
     elif use_model == 'CNNTextClassifier':
         word2vec = get_embedded_matrix(X_all)
-        model = CNNTextClassifier(word2vec, 10000, MAX_SEQ_LENGTH)
-        model.build()
+        model = CNNTextClassifier(word2vec, VOCAB_SIZE, MAX_SEQ_LENGTH)
+        model.build(128, 7)
         model.train(X_train, y_train, BATCH_SIZE, NUM_EPOCHS_CNN)
 
     else:
-        raise("Unknown model type {}".format(use_model))
+        raise("Unknown model type: {}".format(use_model))
 
     # evaluate model
     accuracy = model.evaluate(X_test, y_test)

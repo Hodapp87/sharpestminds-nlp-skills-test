@@ -49,7 +49,7 @@ import sklearn.pipeline
 
 import keras
 from keras.layers import Conv1D, MaxPooling1D, Dense, Flatten, \
-    Dropout, Input, Embedding, LSTM
+    Dropout, Input, Embedding, LSTM, GlobalMaxPooling1D
 from keras.models import Sequential, Model
 
 class LSATextClassifier(object):
@@ -190,7 +190,6 @@ class IMDB_NN_Classifier(object):
         Returns: The model's accuracy classifying the test data.
         """
         batch_size=32
-        y = np.array(test_labels)[:,0]
         gen = dp.generate_batches(
             test_data, test_labels, batch_size, self.max_seq_length,
             self.word2idx)
@@ -225,26 +224,24 @@ class CNNTextClassifier(IMDB_NN_Classifier):
         """
         # Model is based around:
         # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
-        input_ = Input(shape=(self.max_seq_length,), dtype='int32')
-        x = Embedding(self.vocab_size, self.word_vector_size,
-                      weights=[self.embedding_mtx],
-                      input_length=self.max_seq_length,
-                      trainable=False)(input_)
-        x = Conv1D(features, kernel, activation="relu")(x)
-        #m.add(Dropout(0.25))
-        x = MaxPooling1D(kernel)(x)
-        x = Conv1D(features, kernel, activation="relu")(x)
-        #m.add(Dropout(0.25))
-        x = MaxPooling1D(kernel)(x)
-        x = Conv1D(features, kernel, activation="relu")(x)
-        #m.add(Dropout(0.25))
-        x = MaxPooling1D(35)(x)
-        x = Flatten()(x)
-        x = Dense(128, activation="relu")(x)
-        x = Dropout(0.3)(x)
-        x = Dense(1, activation="sigmoid")(x)
+        m = Sequential()
+        m.add(Embedding(self.vocab_size + 1, self.word_vector_size,
+                        weights=[self.embedding_mtx],
+                        input_length=self.max_seq_length,
+                        trainable=False))
+        m.add(Conv1D(features, kernel, activation="relu"))
+        m.add(MaxPooling1D(5))
+        m.add(Conv1D(features, kernel, activation="relu"))
+        m.add(MaxPooling1D(5))
+        m.add(Conv1D(features, kernel, activation="relu"))
+        m.add(Dropout(0.2))
+        m.add(MaxPooling1D(5))
+        m.add(Flatten())
+        m.add(Dense(features, activation="relu"))
+        m.add(Dropout(0.2))
+        m.add(Dense(1, activation="sigmoid"))
 
-        self.model = Model(inputs=[input_], outputs=[x])
+        self.model = m
 
         print(self.model.summary())
         self.model.compile(loss='binary_crossentropy',
@@ -270,8 +267,6 @@ class RNNTextClassifier(IMDB_NN_Classifier):
         m.add(Embedding(self.vocab_size + 1, self.word_vector_size,
                         weights=[self.embedding_mtx],
                         trainable=False))
-        # To ignore word vectors:
-        #m.add(Embedding(self.vocab_size + 2, units))
         m.add(LSTM(units, dropout=0.2, recurrent_dropout=0.2))
         m.add(Dense(1, activation="sigmoid"))
 
